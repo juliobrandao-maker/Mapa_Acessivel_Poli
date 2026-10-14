@@ -8,7 +8,7 @@
 }
 
 body {
-    background-color: #0f172a; /* Azul escuro / Grafite */
+    background-color: #0f172a;
     color: #f8fafc;
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     display: flex;
@@ -32,7 +32,7 @@ body {
 
 #status-local {
     font-weight: 600;
-    color: #facc15; /* Amarelo de alto contraste */
+    color: #facc15;
 }
 
 .container-principal {
@@ -74,7 +74,7 @@ select:focus {
 }
 
 button {
-    background-color: #10b981; /* Verde de ação */
+    background-color: #10b981;
     color: #022c22;
     border: none;
     padding: 12px;
@@ -92,15 +92,10 @@ button:hover {
 /* Área do Mapa */
 #mapa {
     width: 100%;
-    height: 520px;
-    background-color: #020617 !important; /* Fundo escuro do canvas */
+    height: 560px;
+    background-color: #0f172a !important;
     border-radius: 10px;
     border: 1px solid #334155;
-}
-
-/* Filtro visual seguro para integrar a imagem no modo escuro */
-.leaflet-image-layer {
-    filter: brightness(0.9) contrast(1.05);
 }
 
 /* Estilo dos Popups do Leaflet */
