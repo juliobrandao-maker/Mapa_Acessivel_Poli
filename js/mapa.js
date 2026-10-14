@@ -1,64 +1,75 @@
 // ==========================================
 // 1. CAPTURA DO LOCAL VIA QR CODE (URL)
 // ==========================================
-// Exemplo: se o link for .../?origem=bloco_a
 const parametrosURL = new URLSearchParams(window.location.search);
-const pontoOrigem = parametrosURL.get('origem') || 'entrada_principal';
+const pontoOrigem = parametrosURL.get('origem') || 'entrada';
 
 const statusLocal = document.getElementById('status-local');
 
-// Nomes amigáveis dos pontos do campus
+// Nomes amigáveis de todos os blocos do campus POLI
 const nomesLocais = {
-    entrada_principal: "Entrada Principal (Portão)",
-    bloco_a: "Bloco A",
-    bloco_b: "Bloco B",
+    entrada: "Entrada Principal",
+    bloco_a: "Bloco A (Auditório / NAPSI)",
     biblioteca: "Biblioteca",
-    diretoria: "Diretoria / Escolaridade",
-    laboratorios: "Laboratórios",
-    cantina: "Cantina / Vivência"
+    bloco_b: "Bloco B (Escolaridade / Tesouraria)",
+    bloco_c: "Bloco C (ECOMP)",
+    bloco_d: "Bloco D",
+    bloco_e: "Bloco E / DEX",
+    bloco_f: "Bloco F (LIP 1 / LIP 2)",
+    bloco_g: "Bloco G (LIP 7)",
+    bloco_i: "Bloco I (DATP)",
+    bloco_j: "Bloco J (LIP 5 / LIP 6)",
+    bloco_k: "Bloco K",
+    quadra: "Quadra / Estacionamento",
+    praca: "Praça Central"
 };
 
-// Exibe na tela onde o aluno está
+// Atualiza a indicação do local no ecrã
 statusLocal.textContent = `📍 Você está em: ${nomesLocais[pontoOrigem] || "Local Desconhecido"}`;
 
 
 // ==========================================
-// 2. CONFIGURAÇÃO DO MAPA (LEAFLET.JS)
+// 2. CONFIGURAÇÃO DO MAPA COM A PLANTA REAL
 // ==========================================
-// L.CRS.Simple faz o mapa usar coordenadas simples [y, x] de uma imagem
 const mapa = L.map('mapa', {
     crs: L.CRS.Simple,
     minZoom: -1,
     maxZoom: 2
 });
 
-// Resolução simulada da imagem do mapa (largura x altura em pixels)
-const larguraImagem = 1200;
-const alturaImagem = 800;
+// Dimensões proporcionais da imagem da planta
+const larguraImagem = 1000;
+const alturaImagem = 460;
 const limitesMapa = [[0, 0], [alturaImagem, larguraImagem]];
 
-// Imagem temporária via URL para testes (placeholder)
-const urlImagemMapa = 'https://via.placeholder.com/1200x800/003366/FFFFFF?text=Planta+Baixa+POLI+UPE';
+// Ficheiro da planta na pasta assets (atualizado para .jpg)
+const urlImagemMapa = 'assets/Planta_Poli.jpeg';
 
 L.imageOverlay(urlImagemMapa, limitesMapa).addTo(mapa);
 mapa.fitBounds(limitesMapa);
 
 
 // ==========================================
-// 3. COORDENADAS DOS PONTOS DO CAMPUS (Y, X)
+// 3. COORDENADAS APROXIMADAS DOS BLOCOS (Y, X)
 // ==========================================
-// Posição aproximada na imagem do mapa [vertical, horizontal]
 const coordenadas = {
-    entrada_principal: [100, 200],
-    bloco_a: [250, 400],
-    bloco_b: [450, 600],
-    biblioteca: [600, 300],
-    diretoria: [300, 800],
-    laboratorios: [500, 950],
-    cantina: [200, 1000]
+    entrada: [30, 310],
+    quadra: [100, 200],
+    bloco_a: [280, 180],
+    biblioteca: [230, 420],
+    bloco_b: [100, 520],
+    bloco_g: [200, 560],
+    bloco_f: [200, 650],
+    bloco_i: [380, 450],
+    bloco_k: [330, 640],
+    bloco_e: [280, 760],
+    bloco_d: [250, 860],
+    bloco_j: [120, 820],
+    bloco_c: [170, 940],
+    praca: [330, 510]
 };
 
-// Marca o ponto inicial onde o aluno está
+// Adiciona o marcador de posição atual
 if (coordenadas[pontoOrigem]) {
     L.marker(coordenadas[pontoOrigem]).addTo(mapa)
         .bindPopup(`<b>Você está aqui:</b><br>${nomesLocais[pontoOrigem]}`)
@@ -69,7 +80,7 @@ if (coordenadas[pontoOrigem]) {
 // ==========================================
 // 4. LÓGICA DE TRAÇAR A ROTA
 // ==========================================
-let linhaRotaAtual = null; // Guarda a linha desenhada no mapa
+let linhaRotaAtual = null;
 
 document.getElementById('btn-tracar-rota').addEventListener('click', function() {
     const destinoSelecionado = document.getElementById('select-destino').value;
@@ -87,19 +98,32 @@ document.getElementById('btn-tracar-rota').addEventListener('click', function() 
         return;
     }
 
-    // Se já existir uma rota desenhada, remove ela antes de desenhar a nova
     if (linhaRotaAtual) {
         mapa.removeLayer(linhaRotaAtual);
     }
 
-    // Desenha uma linha de rota destacada (Amarela/Verde de alto contraste com borda)
     linhaRotaAtual = L.polyline([pontoInicio, pontoFim], {
-        color: '#ff0055',    // Cor da linha
-        weight: 6,           // Espessura
-        opacity: 0.8,        // Transparência
-        dashArray: '10, 10'  // Linha tracejada para facilitar a visualização
+        color: '#ff0055',
+        weight: 6,
+        opacity: 0.85,
+        dashArray: '10, 10'
     }).addTo(mapa);
 
-    // Ajusta o zoom do mapa para mostrar todo o trajeto da rota
     mapa.fitBounds(linhaRotaAtual.getBounds(), { padding: [50, 50] });
+});
+
+
+// ==========================================
+// 5. FERRAMENTA DE DESENVOLVEDOR (Ajuste fino de Coordenadas)
+// Clique em qualquer sala/bloco no mapa para ver a coordenada [Y, X] no ecrã
+// ==========================================
+mapa.on('click', function(e) {
+    const y = Math.round(e.latlng.lat);
+    const x = Math.round(e.latlng.lng);
+    console.log(`Ponto clicado -> Coordenadas: [${y}, ${x}]`);
+
+    L.popup()
+        .setLatLng(e.latlng)
+        .setContent(`Coordenadas: <b>[${y}, ${x}]</b>`)
+        .openOn(mapa);
 });
