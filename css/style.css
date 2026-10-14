@@ -1,0 +1,84 @@
+/* Reseta margens padrão e define o tamanho da página */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: Arial, Helvetica, sans-serif;
+}
+
+body {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    background-color: #f0f2f5;
+}
+
+/* Cabeçalho de alto contraste */
+.cabecalho {
+    background-color: #002b5b;
+    color: #ffffff;
+    text-align: center;
+    padding: 12px;
+}
+
+.cabecalho h1 {
+    font-size: 1.4rem;
+}
+
+.cabecalho p {
+    font-size: 0.95rem;
+    color: #ffd700; /* Amarelo para destaque visual */
+    margin-top: 4px;
+    font-weight: bold;
+}
+
+.container-principal {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+}
+
+/* Painel de seleção para celular */
+.painel-rotas {
+    background: #ffffff;
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    box-shadow: 0px 2px 5px rgba(0,0,0,0.1);
+    z-index: 1000; /* Fica acima do mapa */
+}
+
+.painel-rotas label {
+    font-weight: bold;
+    font-size: 0.9rem;
+    color: #333;
+}
+
+.painel-rotas select,
+.painel-rotas button {
+    padding: 12px;
+    font-size: 1rem;
+    border-radius: 8px;
+    border: 1px solid #ccc;
+}
+
+/* Botão grande e chamativo de ação */
+.painel-rotas button {
+    background-color: #00875a;
+    color: white;
+    font-weight: bold;
+    border: none;
+    cursor: pointer;
+}
+
+.painel-rotas button:hover {
+    background-color: #006644;
+}
+
+/* Área do mapa ocupa todo o restante da tela */
+#mapa {
+    flex: 1;
+    width: 100%;
+    background-color: #e5e9f0;
+}

@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mapa Acessível POLI - UPE</title>
+
+    <!-- CSS do Leaflet (Biblioteca do Mapa) -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+    <!-- Nosso arquivo de estilo -->
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<!-- Cabeçalho Acessível -->
+<header class="cabecalho">
+    <h1>📍 Mapa Acessível POLI</h1>
+    <!-- Esta mensagem muda dinamicamente dependendo do QR Code escaneado -->
+    <p id="status-local">Aguardando identificação de local...</p>
+</header>
+
+<!-- Painel de Controles e Seleção de Rota -->
+<main class="container-principal">
+    <section class="painel-rotas">
+        <label for="select-destino">Para onde você deseja ir?</label>
+        <select id="select-destino">
+            <option value="">-- Selecione o Destino --</option>
+            <option value="biblioteca">📚 Biblioteca</option>
+            <option value="diretoria">📋 Diretoria / Escolaridade</option>
+            <option value="bloco_b">🏢 Bloco B (Salas de Aula)</option>
+            <option value="laboratorios">💻 Laboratórios de Informática</option>
+            <option value="cantina">🥪 Cantina / Vivência</option>
+        </select>
+        <button id="btn-tracar-rota">Traçar Rota Visual</button>
+    </section>
+
+    <!-- Espaço onde o mapa interativo é renderizado -->
+    <div id="mapa"></div>
+</main>
+
+<!-- JS do Leaflet -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<!-- Nosso arquivo de lógica JavaScript -->
+<script src="js/mapa.js"></script>
+</body>
+</html>
