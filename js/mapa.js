@@ -6,7 +6,6 @@ const pontoOrigem = parametrosURL.get('origem') || 'entrada';
 
 const statusLocal = document.getElementById('status-local');
 
-// Nomes amigáveis de todos os blocos do campus POLI
 const nomesLocais = {
     entrada: "Entrada Principal",
     bloco_a: "Bloco A (Auditório / NAPSI)",
@@ -24,12 +23,11 @@ const nomesLocais = {
     praca: "Praça Central"
 };
 
-// Atualiza a indicação do local no ecrã
 statusLocal.textContent = `📍 Você está em: ${nomesLocais[pontoOrigem] || "Local Desconhecido"}`;
 
 
 // ==========================================
-// 2. CONFIGURAÇÃO DO MAPA COM A PLANTA REAL
+// 2. CONFIGURAÇÃO DO MAPA
 // ==========================================
 const mapa = L.map('mapa', {
     crs: L.CRS.Simple,
@@ -37,22 +35,22 @@ const mapa = L.map('mapa', {
     maxZoom: 2
 });
 
-// Dimensões proporcionais da imagem da planta
 const larguraImagem = 1000;
 const alturaImagem = 460;
 const limitesMapa = [[0, 0], [alturaImagem, larguraImagem]];
 
-// Ficheiro da planta na pasta assets (atualizado para .jpg)
+// Certifica-te de que o ficheiro na pasta assets tem exatamente este nome
 const urlImagemMapa = 'assets/Planta_Poli.jpeg';
 
-L.imageOverlay(urlImagemMapa, limitesMapa).addTo(mapa);
+const overlayImagem = L.imageOverlay(urlImagemMapa, limitesMapa).addTo(mapa);
 mapa.fitBounds(limitesMapa);
 
 
 // ==========================================
-// 3. COORDENADAS APROXIMADAS DOS BLOCOS (Y, X)
+// 3. REDE DE NÓS (CORREDORES E BLOCOS)
 // ==========================================
-const coordenadas = {
+const pontos = {
+    // Destinos
     entrada: [30, 310],
     quadra: [100, 200],
     bloco_a: [280, 180],
@@ -66,64 +64,137 @@ const coordenadas = {
     bloco_d: [250, 860],
     bloco_j: [120, 820],
     bloco_c: [170, 940],
-    praca: [330, 510]
+    praca: [330, 510],
+
+    // Nós de cruzamento de corredores (Waypoints)
+    c_portao: [80, 310],
+    c_quadra: [80, 200],
+    c_biblio: [140, 420],
+    c_corredor_sul_1: [80, 520],
+    c_corredor_sul_2: [80, 650],
+    c_corredor_sul_3: [80, 820],
+    c_corredor_norte_1: [320, 450],
+    c_corredor_norte_2: [320, 640],
+    c_corredor_norte_3: [280, 860],
+    c_praca: [270, 510]
 };
 
-// Adiciona o marcador de posição atual
-if (coordenadas[pontoOrigem]) {
-    L.marker(coordenadas[pontoOrigem]).addTo(mapa)
+// Grafo de conexões dos corredores
+const grafo = {
+    entrada: ['c_portao'],
+    c_portao: ['entrada', 'c_quadra', 'c_corredor_sul_1', 'c_biblio'],
+    c_quadra: ['c_portao', 'quadra', 'bloco_a'],
+    quadra: ['c_quadra'],
+    bloco_a: ['c_quadra'],
+
+    c_biblio: ['c_portao', 'biblioteca', 'c_praca'],
+    biblioteca: ['c_biblio'],
+
+    c_corredor_sul_1: ['c_portao', 'bloco_b', 'bloco_g', 'c_corredor_sul_2'],
+    bloco_b: ['c_corredor_sul_1'],
+    bloco_g: ['c_corredor_sul_1'],
+
+    c_corredor_sul_2: ['c_corredor_sul_1', 'bloco_f', 'c_corredor_sul_3'],
+    bloco_f: ['c_corredor_sul_2'],
+
+    c_corredor_sul_3: ['c_corredor_sul_2', 'bloco_j', 'bloco_c'],
+    bloco_j: ['c_corredor_sul_3'],
+    bloco_c: ['c_corredor_sul_3'],
+
+    c_praca: ['c_biblio', 'praca', 'c_corredor_norte_1'],
+    praca: ['c_praca'],
+
+    c_corredor_norte_1: ['c_praca', 'bloco_i', 'c_corredor_norte_2'],
+    bloco_i: ['c_corredor_norte_1'],
+
+    c_corredor_norte_2: ['c_corredor_norte_1', 'bloco_k', 'bloco_e', 'c_corredor_norte_3'],
+    bloco_k: ['c_corredor_norte_2'],
+    bloco_e: ['c_corredor_norte_2'],
+
+    c_corredor_norte_3: ['c_corredor_norte_2', 'bloco_d'],
+    bloco_d: ['c_corredor_norte_3']
+};
+
+// Marcador da Origem Atual
+if (pontos[pontoOrigem]) {
+    L.marker(pontos[pontoOrigem]).addTo(mapa)
         .bindPopup(`<b>Você está aqui:</b><br>${nomesLocais[pontoOrigem]}`)
         .openPopup();
 }
 
+// Marcadores clicáveis nos destinos
+Object.keys(nomesLocais).forEach(chave => {
+    if (chave !== pontoOrigem && pontos[chave]) {
+        const marker = L.circleMarker(pontos[chave], {
+            radius: 8,
+            color: '#38bdf8',
+            fillColor: '#0284c7',
+            fillOpacity: 0.8
+        }).addTo(mapa);
+
+        marker.bindPopup(`
+            <b>${nomesLocais[chave]}</b><br>
+            <button class="btn-pop-rota" onclick="tracarRotaDireta('${chave}')">Traçar Rota para cá</button>
+        `);
+    }
+});
+
 
 // ==========================================
-// 4. LÓGICA DE TRAÇAR A ROTA
+// 4. ALGORITMO DE NAVEGAÇÃO POR CORREDORES
 // ==========================================
+function encontrarCaminho(inicio, fim) {
+    let fila = [[inicio]];
+    let visitados = new Set([inicio]);
+
+    while (fila.length > 0) {
+        let caminho = fila.shift();
+        let noAtual = caminho[caminho.length - 1];
+
+        if (noAtual === fim) {
+            return caminho.map(no => pontos[no]);
+        }
+
+        for (let vizinho of (grafo[noAtual] || [])) {
+            if (!visitados.has(vizinho)) {
+                visitados.add(vizinho);
+                fila.push([...caminho, vizinho]);
+            }
+        }
+    }
+    return [pontos[inicio], pontos[fim]];
+}
+
 let linhaRotaAtual = null;
 
-document.getElementById('btn-tracar-rota').addEventListener('click', function() {
-    const destinoSelecionado = document.getElementById('select-destino').value;
-
-    if (!destinoSelecionado) {
-        alert("Por favor, selecione um destino no menu!");
-        return;
-    }
-
-    const pontoInicio = coordenadas[pontoOrigem];
-    const pontoFim = coordenadas[destinoSelecionado];
-
-    if (!pontoInicio || !pontoFim) {
-        alert("Ponto de origem ou destino não encontrado!");
-        return;
-    }
+function desenharRota(destino) {
+    const coordsCaminho = encontrarCaminho(pontoOrigem, destino);
 
     if (linhaRotaAtual) {
         mapa.removeLayer(linhaRotaAtual);
     }
 
-    linhaRotaAtual = L.polyline([pontoInicio, pontoFim], {
-        color: '#ff0055',
+    linhaRotaAtual = L.polyline(coordsCaminho, {
+        color: '#facc15', // Amarelo de alto contraste
         weight: 6,
-        opacity: 0.85,
-        dashArray: '10, 10'
+        opacity: 0.9,
+        dashArray: '8, 8'
     }).addTo(mapa);
 
-    mapa.fitBounds(linhaRotaAtual.getBounds(), { padding: [50, 50] });
-});
+    mapa.fitBounds(linhaRotaAtual.getBounds(), { padding: [40, 40] });
+}
 
+window.tracarRotaDireta = function(destinoKey) {
+    document.getElementById('select-destino').value = destinoKey;
+    desenharRota(destinoKey);
+    mapa.closePopup();
+};
 
-// ==========================================
-// 5. FERRAMENTA DE DESENVOLVEDOR (Ajuste fino de Coordenadas)
-// Clique em qualquer sala/bloco no mapa para ver a coordenada [Y, X] no ecrã
-// ==========================================
-mapa.on('click', function(e) {
-    const y = Math.round(e.latlng.lat);
-    const x = Math.round(e.latlng.lng);
-    console.log(`Ponto clicado -> Coordenadas: [${y}, ${x}]`);
-
-    L.popup()
-        .setLatLng(e.latlng)
-        .setContent(`Coordenadas: <b>[${y}, ${x}]</b>`)
-        .openOn(mapa);
+document.getElementById('btn-tracar-rota').addEventListener('click', function() {
+    const destino = document.getElementById('select-destino').value;
+    if (!destino) {
+        alert("Por favor, selecione um destino!");
+        return;
+    }
+    desenharRota(destino);
 });

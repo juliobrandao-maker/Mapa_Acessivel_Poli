@@ -1,84 +1,129 @@
-/* Reseta margens padrão e define o tamanho da página */
+/* ==========================================
+   TEMA DARK MODE & ACESSIBILIDADE - POLI
+   ========================================== */
 * {
+    box-sizing: border-box;
     margin: 0;
     padding: 0;
-    box-sizing: border-box;
-    font-family: Arial, Helvetica, sans-serif;
 }
 
 body {
+    background-color: #0f172a; /* Azul escuro / Grafite */
+    color: #f8fafc;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     display: flex;
     flex-direction: column;
-    height: 100vh;
-    background-color: #f0f2f5;
+    min-height: 100vh;
 }
 
-/* Cabeçalho de alto contraste */
 .cabecalho {
-    background-color: #002b5b;
-    color: #ffffff;
+    background-color: #1e293b;
+    border-bottom: 2px solid #334155;
+    padding: 15px;
     text-align: center;
-    padding: 12px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
 }
 
 .cabecalho h1 {
-    font-size: 1.4rem;
+    font-size: 1.5rem;
+    color: #38bdf8;
+    margin-bottom: 5px;
 }
 
-.cabecalho p {
-    font-size: 0.95rem;
-    color: #ffd700; /* Amarelo para destaque visual */
-    margin-top: 4px;
-    font-weight: bold;
+#status-local {
+    font-weight: 600;
+    color: #facc15; /* Amarelo de alto contraste */
 }
 
 .container-principal {
-    display: flex;
-    flex-direction: column;
+    max-width: 1200px;
+    width: 100%;
+    margin: 0 auto;
+    padding: 15px;
     flex: 1;
 }
 
-/* Painel de seleção para celular */
 .painel-rotas {
-    background: #ffffff;
-    padding: 12px;
+    background-color: #1e293b;
+    border: 1px solid #334155;
+    border-radius: 10px;
+    padding: 15px;
+    margin-bottom: 15px;
     display: flex;
     flex-direction: column;
-    gap: 8px;
-    box-shadow: 0px 2px 5px rgba(0,0,0,0.1);
-    z-index: 1000; /* Fica acima do mapa */
+    gap: 10px;
 }
 
 .painel-rotas label {
-    font-weight: bold;
-    font-size: 0.9rem;
-    color: #333;
+    font-size: 0.95rem;
+    color: #94a3b8;
 }
 
-.painel-rotas select,
-.painel-rotas button {
+select {
+    background-color: #0f172a;
+    color: #f8fafc;
+    border: 1px solid #475569;
     padding: 12px;
-    font-size: 1rem;
     border-radius: 8px;
-    border: 1px solid #ccc;
+    font-size: 1rem;
+    outline: none;
 }
 
-/* Botão grande e chamativo de ação */
-.painel-rotas button {
-    background-color: #00875a;
-    color: white;
-    font-weight: bold;
+select:focus {
+    border-color: #38bdf8;
+}
+
+button {
+    background-color: #10b981; /* Verde de ação */
+    color: #022c22;
     border: none;
+    padding: 12px;
+    border-radius: 8px;
+    font-weight: bold;
+    font-size: 1rem;
     cursor: pointer;
+    transition: background 0.2s;
 }
 
-.painel-rotas button:hover {
-    background-color: #006644;
+button:hover {
+    background-color: #34d399;
 }
 
-/* Área do mapa ocupa todo o restante da tela */
+/* Área do Mapa */
 #mapa {
-    flex: 1;
     width: 100%;
-    background-color: #e5e9f0;
+    height: 520px;
+    background-color: #020617 !important; /* Fundo escuro do canvas */
+    border-radius: 10px;
+    border: 1px solid #334155;
+}
+
+/* Filtro visual seguro para integrar a imagem no modo escuro */
+.leaflet-image-layer {
+    filter: brightness(0.9) contrast(1.05);
+}
+
+/* Estilo dos Popups do Leaflet */
+.leaflet-popup-content-wrapper {
+    background-color: #1e293b !important;
+    color: #f8fafc !important;
+    border: 1px solid #475569;
+    border-radius: 8px;
+}
+
+.leaflet-popup-tip {
+    background-color: #1e293b !important;
+}
+
+.btn-pop-rota {
+    background-color: #38bdf8;
+    color: #0f172a;
+    border: none;
+    padding: 6px 12px;
+    margin-top: 8px;
+    border-radius: 5px;
+    font-size: 0.85rem;
+    font-weight: bold;
+    cursor: pointer;
+    width: 100%;
 }
