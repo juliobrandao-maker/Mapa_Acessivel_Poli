@@ -1,105 +1,229 @@
 // ==========================================
 // 1. CAPTURA DO LOCAL VIA QR CODE (URL)
 // ==========================================
-// Exemplo: se o link for .../?origem=bloco_a
 const parametrosURL = new URLSearchParams(window.location.search);
-const pontoOrigem = parametrosURL.get('origem') || 'entrada_principal';
+const pontoOrigem = parametrosURL.get('origem') || 'entrada';
 
 const statusLocal = document.getElementById('status-local');
 
-// Nomes amigáveis dos pontos do campus
 const nomesLocais = {
-    entrada_principal: "Entrada Principal (Portão)",
-    bloco_a: "Bloco A",
-    bloco_b: "Bloco B",
-    biblioteca: "Biblioteca",
-    diretoria: "Diretoria / Escolaridade",
-    laboratorios: "Laboratórios",
-    cantina: "Cantina / Vivência"
+    entrada: "Entrada Principal",
+    quadra: "Quadra / Estacionamento",
+    bloco_a: "Bloco A (Auditório / NAPSI)",
+    biblioteca: "Biblioteca (LIP 3)",
+    bloco_b: "Bloco B (Escolaridade / Tesouraria / Protocolo)",
+    bloco_g: "Bloco G (LIP 7)",
+    bloco_f: "Bloco F (LIP 1 / LIP 2)",
+    praca: "Praça Central",
+    bloco_j: "Bloco J (LIP 5 / LIP 6)",
+    bloco_c: "Bloco C (ECOMP)",
+    bloco_i: "Bloco I (DATP)",
+    bloco_k: "Bloco K",
+    bloco_e: "Bloco E / DEX",
+    bloco_d: "Bloco D"
 };
 
-// Exibe na tela onde o aluno está
 statusLocal.textContent = `📍 Você está em: ${nomesLocais[pontoOrigem] || "Local Desconhecido"}`;
 
 
 // ==========================================
-// 2. CONFIGURAÇÃO DO MAPA (LEAFLET.JS)
+// 2. CONFIGURAÇÃO DO MAPA & CANVAS (16:9 - 1000x562)
 // ==========================================
-// L.CRS.Simple faz o mapa usar coordenadas simples [y, x] de uma imagem
 const mapa = L.map('mapa', {
     crs: L.CRS.Simple,
     minZoom: -1,
     maxZoom: 2
 });
 
-// Resolução simulada da imagem do mapa (largura x altura em pixels)
-const larguraImagem = 1200;
-const alturaImagem = 800;
+const larguraImagem = 1000;
+const alturaImagem = 562;
 const limitesMapa = [[0, 0], [alturaImagem, larguraImagem]];
 
-// Imagem temporária via URL para testes (placeholder)
-const urlImagemMapa = 'https://via.placeholder.com/1200x800/003366/FFFFFF?text=Planta+Baixa+POLI+UPE';
+// Caminho para a nova imagem em Dark Mode
+const urlImagemMapa = 'assets/Planta_Poli.png';
 
-L.imageOverlay(urlImagemMapa, limitesMapa).addTo(mapa);
+const overlayImagem = L.imageOverlay(urlImagemMapa, limitesMapa).addTo(mapa);
 mapa.fitBounds(limitesMapa);
 
 
 // ==========================================
-// 3. COORDENADAS DOS PONTOS DO CAMPUS (Y, X)
+// 3. COORDENADAS RECALIBRADAS [Y, X]
 // ==========================================
-// Posição aproximada na imagem do mapa [vertical, horizontal]
-const coordenadas = {
-    entrada_principal: [100, 200],
-    bloco_a: [250, 400],
-    bloco_b: [450, 600],
-    biblioteca: [600, 300],
-    diretoria: [300, 800],
-    laboratorios: [500, 950],
-    cantina: [200, 1000]
+const pontos = {
+    // --- DESTINOS PRINCIPAIS ---
+    entrada: [45, 325],
+    quadra: [145, 200],
+    bloco_a: [345, 185],
+    biblioteca: [280, 420],
+    bloco_b: [145, 545],
+    bloco_g: [280, 560],
+    bloco_f: [280, 658],
+    praca: [275, 795],
+    bloco_j: [140, 828],
+    bloco_c: [185, 935],
+    bloco_i: [450, 435],
+    bloco_k: [410, 620],
+    bloco_e: [348, 768],
+    bloco_d: [315, 862],
+
+    // --- CORREDORES E WAYPOINTS (NÓS DE PASSAGEM) ---
+    c_entrada: [65, 325],        // Corredor de entrada
+    c_quadra_sul: [145, 310],    // Cruzamento Quadra / Bloco B
+    c_quadra_norte: [280, 310],  // Cruzamento Quadra / Bloco A / Biblioteca
+    c_bloco_a: [345, 290],       // Entrada do Bloco A
+    c_sul_1: [215, 390],         // Corredor Sul (Oeste do Bloco B)
+    c_sul_2: [215, 545],         // Corredor Sul (Centro do Bloco B)
+    c_sul_3: [215, 680],         // Corredor Sul (Leste do Bloco B)
+    c_sul_4: [215, 780],         // Cruzamento Bloco B / Bloco J / Praça
+    c_biblio_acesso: [245, 420], // Acesso Biblioteca Sul
+    c_praca_sup: [360, 518],     // Praça Superior (Entre Biblioteca e Bloco I/K)
+    c_norte_1: [395, 435],       // Corredor Norte (Bloco I)
+    c_norte_2: [365, 620],       // Corredor Norte (Bloco K)
+    c_norte_3: [310, 768],       // Corredor Norte (Bloco E)
+    c_norte_4: [280, 862],       // Corredor Norte (Bloco D)
+    c_bloco_c: [185, 885]        // Corredor de Acesso ao Bloco C
 };
 
-// Marca o ponto inicial onde o aluno está
-if (coordenadas[pontoOrigem]) {
-    L.marker(coordenadas[pontoOrigem]).addTo(mapa)
+// ==========================================
+// 4. GRAFO DE CONEXÕES DOS CORREDORES
+// ==========================================
+const grafo = {
+    entrada: ['c_entrada'],
+    c_entrada: ['entrada', 'c_quadra_sul'],
+
+    c_quadra_sul: ['c_entrada', 'quadra', 'c_sul_1', 'c_quadra_norte'],
+    quadra: ['c_quadra_sul'],
+
+    c_quadra_norte: ['c_quadra_sul', 'c_bloco_a', 'biblioteca', 'c_norte_1'],
+    c_bloco_a: ['bloco_a', 'c_quadra_norte'],
+    bloco_a: ['c_bloco_a'],
+
+    c_sul_1: ['c_quadra_sul', 'bloco_b', 'c_biblio_acesso', 'c_sul_2'],
+    c_biblio_acesso: ['c_sul_1', 'biblioteca'],
+    biblioteca: ['c_biblio_acesso', 'c_praca_sup'],
+
+    c_sul_2: ['c_sul_1', 'bloco_b', 'bloco_g', 'c_sul_3'],
+    bloco_b: ['c_sul_1', 'c_sul_2', 'c_sul_3'],
+    bloco_g: ['c_sul_2'],
+
+    c_sul_3: ['c_sul_2', 'bloco_f', 'c_sul_4'],
+    bloco_f: ['c_sul_3'],
+
+    c_sul_4: ['c_sul_3', 'bloco_j', 'praca', 'c_bloco_c', 'c_norte_3'],
+    bloco_j: ['c_sul_4'],
+    praca: ['c_sul_4'],
+    c_bloco_c: ['c_sul_4', 'bloco_c'],
+    bloco_c: ['c_bloco_c'],
+
+    c_praca_sup: ['biblioteca', 'c_norte_1', 'c_norte_2'],
+
+    c_norte_1: ['c_quadra_norte', 'bloco_i', 'c_praca_sup', 'c_norte_2'],
+    bloco_i: ['c_norte_1'],
+
+    c_norte_2: ['c_norte_1', 'bloco_k', 'c_praca_sup', 'c_norte_3'],
+    bloco_k: ['c_norte_2'],
+
+    c_norte_3: ['c_norte_2', 'bloco_e', 'c_sul_4', 'c_norte_4'],
+    bloco_e: ['c_norte_3'],
+
+    c_norte_4: ['c_norte_3', 'bloco_d'],
+    bloco_d: ['c_norte_4']
+};
+
+
+// ==========================================
+// 5. MARCADORES NO MAPA
+// ==========================================
+
+// Ponto de Origem Atual
+if (pontos[pontoOrigem]) {
+    L.marker(pontos[pontoOrigem]).addTo(mapa)
         .bindPopup(`<b>Você está aqui:</b><br>${nomesLocais[pontoOrigem]}`)
         .openPopup();
 }
 
+// Marcadores clicáveis para cada Bloco
+Object.keys(nomesLocais).forEach(chave => {
+    if (chave !== pontoOrigem && pontos[chave]) {
+        const marker = L.circleMarker(pontos[chave], {
+            radius: 8,
+            color: '#38bdf8',
+            fillColor: '#0284c7',
+            fillOpacity: 0.9,
+            weight: 2
+        }).addTo(mapa);
+
+        marker.bindPopup(`
+            <div style="text-align: center;">
+                <b>${nomesLocais[chave]}</b><br>
+                <button class="btn-pop-rota" onclick="tracarRotaDireta('${chave}')">Traçar Rota para cá</button>
+            </div>
+        `);
+    }
+});
+
 
 // ==========================================
-// 4. LÓGICA DE TRAÇAR A ROTA
+// 6. ALGORITMO DE BUSCA DE ROTA
 // ==========================================
-let linhaRotaAtual = null; // Guarda a linha desenhada no mapa
+function encontrarCaminho(inicio, fim) {
+    let fila = [[inicio]];
+    let visitados = new Set([inicio]);
 
-document.getElementById('btn-tracar-rota').addEventListener('click', function() {
-    const destinoSelecionado = document.getElementById('select-destino').value;
+    while (fila.length > 0) {
+        let caminho = fila.shift();
+        let noAtual = caminho[caminho.length - 1];
 
-    if (!destinoSelecionado) {
-        alert("Por favor, selecione um destino no menu!");
-        return;
+        if (noAtual === fim) {
+            return caminho.map(no => pontos[no]);
+        }
+
+        for (let vizinho of (grafo[noAtual] || [])) {
+            if (!visitados.has(vizinho)) {
+                visitados.add(vizinho);
+                fila.push([...caminho, vizinho]);
+            }
+        }
     }
+    return [pontos[inicio], pontos[fim]];
+}
 
-    const pontoInicio = coordenadas[pontoOrigem];
-    const pontoFim = coordenadas[destinoSelecionado];
+let linhaRotaAtual = null;
 
-    if (!pontoInicio || !pontoFim) {
-        alert("Ponto de origem ou destino não encontrado!");
-        return;
-    }
+function desenharRota(destino) {
+    const coordsCaminho = encontrarCaminho(pontoOrigem, destino);
 
-    // Se já existir uma rota desenhada, remove ela antes de desenhar a nova
     if (linhaRotaAtual) {
         mapa.removeLayer(linhaRotaAtual);
     }
 
-    // Desenha uma linha de rota destacada (Amarela/Verde de alto contraste com borda)
-    linhaRotaAtual = L.polyline([pontoInicio, pontoFim], {
-        color: '#ff0055',    // Cor da linha
-        weight: 6,           // Espessura
-        opacity: 0.8,        // Transparência
-        dashArray: '10, 10'  // Linha tracejada para facilitar a visualização
+    linhaRotaAtual = L.polyline(coordsCaminho, {
+        color: '#facc15', // Amarelo de alto contraste
+        weight: 6,
+        opacity: 0.95,
+        lineCap: 'round',
+        lineJoin: 'round',
+        dashArray: '10, 8'
     }).addTo(mapa);
 
-    // Ajusta o zoom do mapa para mostrar todo o trajeto da rota
-    mapa.fitBounds(linhaRotaAtual.getBounds(), { padding: [50, 50] });
-});
+    mapa.fitBounds(linhaRotaAtual.getBounds(), { padding: [40, 40] });
+}
+
+window.tracarRotaDireta = function(destinoKey) {
+    const selectDestino = document.getElementById('select-destino');
+    if (selectDestino) selectDestino.value = destinoKey;
+    desenharRota(destinoKey);
+    mapa.closePopup();
+};
+
+const btnTracar = document.getElementById('btn-tracar-rota');
+if (btnTracar) {
+    btnTracar.addEventListener('click', function() {
+        const destino = document.getElementById('select-destino').value;
+        if (!destino) {
+            alert("Por favor, selecione um destino!");
+            return;
+        }
+        desenharRota(destino);
+    });
+}
